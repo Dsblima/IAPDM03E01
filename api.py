@@ -2,6 +2,7 @@ import sqlite3
 import os
 import subprocess
 from flask import Flask, request, make_response, escape
+import ipaddress
 
 
 app = Flask(__name__)
@@ -20,7 +21,18 @@ def autenticar_usuario(username, password):
 @app.route("/ping")
 def ping():
     ip = request.args.get("ip", "")
-    output = subprocess.getoutput(f"ping -c 1 {ip}")
+    try:
+        validated_ip = str(ipaddress.ip_address(ip))
+    except ValueError:
+        return make_response("Parâmetro 'ip' inválido", 400)
+
+    result = subprocess.run(
+        ["ping", "-c", "1", validated_ip],
+        capture_output=True,
+        text=True,
+        check=False
+    )
+    output = result.stdout if result.stdout else result.stderr
     return f"<pre>{output}</pre>"
 
 
@@ -37,4 +49,4 @@ def comente():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
